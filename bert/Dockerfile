@@ -1,4 +1,4 @@
-FROM mosaicml/composer:0.16.4
+FROM mosaicml/pytorch:1.13.1_cu117-python3.10-ubuntu20.04
 
-RUN pip install omegaconf
-RUN pip install -U triton==2.0.0.dev20221202
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
