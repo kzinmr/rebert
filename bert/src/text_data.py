@@ -67,8 +67,11 @@ class StreamingTextDataset(StreamingDataset):
         keep_zip (bool): Whether to keep or delete the compressed form when decompressing
             downloaded shards. If ``False``, keep iff remote is local or no remote. Defaults to
             `False``.
-        choose (int, optional): Provide this field iff you are weighting sub-datasets
-            proportionally. Defaults to ``None``.
+        epoch_size (Union[int, str], optional): Number of samples to draw per epoch balanced
+            across all streams. If ``None``, takes its value from the total number of underlying
+            samples. Provide this field if you are weighting streams relatively to target a larger
+            or smaller epoch size. Defaults to ``None``. Can also take in human-readable number
+            abbreviations (e.g., ``"100k"``, ``"64M"``, ``"77b"``, etc). Defaults to ``None``.
         predownload (int, optional): Target number of samples ahead to download the shards of while
             iterating. Defaults to ``100_000``.
         partition_algo (str): Which partitioning algorithm to use. Defaults to ``orig``.
@@ -95,7 +98,7 @@ class StreamingTextDataset(StreamingDataset):
         download_timeout: float = 60,
         validate_hash: Optional[str] = None,
         keep_zip: bool = False,
-        choose: Optional[int] = None,
+        epoch_size: Optional[int] = None,
         predownload: int = 100_000,
         partition_algo: str = "orig",
         num_canonical_nodes: Optional[int] = None,
@@ -136,7 +139,7 @@ class StreamingTextDataset(StreamingDataset):
             download_timeout=download_timeout,
             validate_hash=validate_hash,
             keep_zip=keep_zip,
-            choose=choose,
+            epoch_size=epoch_size,
             predownload=predownload,
             partition_algo=partition_algo,
             num_canonical_nodes=num_canonical_nodes,
@@ -282,7 +285,7 @@ def build_text_dataloader(
         download_timeout=cfg.dataset.get("download_timeout", 60),
         validate_hash=cfg.dataset.get("validate_hash", None),
         keep_zip=cfg.dataset.get("keep_zip", False),
-        choose=cfg.dataset.get("choose", None),
+        epoch_size=cfg.dataset.get("epoch_size", None),
         predownload=cfg.dataset.get("predownload", 100_000),
         partition_algo=cfg.dataset.get("partition_algo", "orig"),
         num_canonical_nodes=cfg.dataset.get("num_canonical_nodes", 128),

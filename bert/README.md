@@ -95,7 +95,7 @@ python src/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy
 # The final folder `./my-copy-c4/train` will be ~800GB so make sure you have space!
 # python src/convert_dataset.py --dataset c4 --data_subset en --out_root ./my-copy-c4 --splits train
 
-# For any of the above commands, you can also choose to compress the .mds files.
+# For any of the above commands, you can also epoch_size to compress the .mds files.
 # This is useful if your plan is to store these in object store after conversion.
 # python src/convert_dataset.py ... --compression zstd
 ```
