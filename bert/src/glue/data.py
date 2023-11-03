@@ -3,7 +3,10 @@
 
 import logging
 
-from composer.utils import MissingConditionalImportError, dist
+import datasets
+import transformers
+
+from composer.utils import dist
 
 _task_column_names = {
     'cola': ('sentence', None),
@@ -26,13 +29,7 @@ def create_glue_dataset(
     max_seq_length: int = 256,
     max_retries: int = 10,
     num_workers: int = 0,
-):
-    try:
-        import datasets
-        import transformers
-    except ImportError as e:
-        raise MissingConditionalImportError(extra_deps_group='nlp',
-                                            conda_package='transformers') from e
+) -> datasets.Dataset:
 
     if task not in _task_column_names:
         raise ValueError(
