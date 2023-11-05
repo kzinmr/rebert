@@ -1,7 +1,6 @@
 # Copyright 2022 MosaicML Examples authors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Streaming dataset conversion scripts for C4 and The Pile."""
 import os
 import platform
 from argparse import ArgumentParser, Namespace
@@ -87,64 +86,110 @@ class ValSmallConstants(DataSplitConstants):
         super().__init__(hf_split, folder_split, raw_samples, truncated_samples)
 
 
-def build_c4_constants():
-    train_raw_samples = 364868892  # dataset.info.splits["train"].num_examples
-    val_raw_samples = 364608  # dataset.info.splits["validation"].num_examples
-    val_chars_per_sample = 2163
-    val_chars_per_token = 4  # OpenAI estimate
+def build_constants(
+    train_raw_samples, val_raw_samples, val_chars_per_sample=-1, val_chars_per_token=-1
+):
+    # dataset.info.splits["train"].num_examples
+    # dataset.info.splits["validation"].num_examples
 
-    c4constants = DatasetConstants(
+    constants = DatasetConstants(
         chars_per_sample=val_chars_per_sample,
         chars_per_token=val_chars_per_token,
     )
-    c4constants.splits["train"] = DataSplitConstants(
+    constants.splits["train"] = DataSplitConstants(
         hf_split="train",
         folder_split="train",
         raw_samples=train_raw_samples,
         truncated_samples=None,
     )
-    c4constants.splits["val"] = DataSplitConstants(
+    constants.splits["val"] = DataSplitConstants(
         hf_split="validation",
         folder_split="val",
         raw_samples=val_raw_samples,
         truncated_samples=None,
     )
 
-    c4constants.splits["train_small"] = TrainSmallConstants()
-    c4constants.splits["val_small"] = ValSmallConstants()
-    return c4constants
+    constants.splits["train_small"] = TrainSmallConstants()
+    constants.splits["val_small"] = ValSmallConstants()
+    return constants
+
+
+def build_c4_constants():
+    return build_constants(
+        train_raw_samples=364868892,
+        val_raw_samples=364608,
+        val_chars_per_sample=2163,
+        val_chars_per_token=4,
+    )
 
 
 def build_mc4_ja_constants():
-    train_raw_samples = 87337884
-    val_raw_samples = 364608
-
-    val_chars_per_sample = 2163
-    val_chars_per_token = 4  # OpenAI estimate
-
-    mc4constants = DatasetConstants(
-        chars_per_sample=val_chars_per_sample,
-        chars_per_token=val_chars_per_token,
-    )
-    mc4constants.splits["train"] = DataSplitConstants(
-        hf_split="train",
-        folder_split="train",
-        raw_samples=train_raw_samples,
-        truncated_samples=None,
-    )
-    mc4constants.splits["val"] = DataSplitConstants(
-        hf_split="validation",
-        folder_split="val",
-        raw_samples=val_raw_samples,
-        truncated_samples=None,
+    return build_constants(
+        train_raw_samples=87337884,
+        val_raw_samples=87420,
+        val_chars_per_sample=-1,
+        val_chars_per_token=-1,
     )
 
-    mc4constants.splits["train_small"] = TrainSmallConstants()
-    mc4constants.splits["val_small"] = ValSmallConstants()
-    return mc4constants
+
+def build_oscar_ja_constants():
+    return build_constants(
+        train_raw_samples=39496439,
+        val_raw_samples=87420,
+        val_chars_per_sample=-1,
+        val_chars_per_token=-1,
+    )
 
 
-CONSTS = {"c4": build_c4_constants(), "mc4": build_mc4_ja_constants()}
+def build_cc100_ja_constants():
+    return build_constants(
+        train_raw_samples=458387942,
+        val_raw_samples=87420,
+        val_chars_per_sample=-1,
+        val_chars_per_token=-1,
+    )
+
+
+def build_wiki40B_ja_constants():
+    return build_constants(
+        train_raw_samples=458387942,
+        val_raw_samples=87420,
+        val_chars_per_sample=-1,
+        val_chars_per_token=-1,
+    )
+
+
+def build_wikipedia_ja_constants():
+    return build_constants(
+        train_raw_samples=458387942,
+        val_raw_samples=87420,
+        val_chars_per_sample=-1,
+        val_chars_per_token=-1,
+    )
+
+
+CONSTS = {
+    "c4": build_c4_constants(),
+    "mc4": build_mc4_ja_constants(),
+    "oscar": build_oscar_ja_constants(),
+    "cc100": build_cc100_ja_constants(),
+    "wiki40B": build_wiki40B_ja_constants(),
+    "wikipedia": build_wikipedia_ja_constants(),
+}
+
+DATAMAP = {
+    "c4": {"dataset": "c4", "data_subset": "en"},
+    "mc4": {"dataset": "mc4", "data_subset": "ja"},
+    "oscar": {"dataset": "mc4", "data_subset": "unshuffled_deduplicated_ja"},
+    "cc100": {"dataset": "range3/cc100-ja", "data_subset": None},
+    "wiki40B": {"dataset": "range3/wiki40b-ja", "data_subset": None},
+    "wikipedia": {"dataset": "range3/wikipedia-ja-20230101", "data_subset": None},
+}
+
+
+def rename_args_for_dataset(args, dataset_name):
+    args.dataset = DATAMAP[dataset_name]["dataset"]
+    args.data_subset = DATAMAP[dataset_name]["data_subset"]
 
 
 class NoConcatDataset(IterableDataset):
@@ -153,7 +198,9 @@ class NoConcatDataset(IterableDataset):
     Returns dicts of {'text': bytes}
     """
 
-    def __init__(self, dataset_name: str, data_subset: Union[str, None], split: str):
+    def __init__(
+        self, dataset_name: str, split: str, data_subset: Union[str, None] = None
+    ):
         self.hf_dataset = hf_datasets.load_dataset(
             path=dataset_name, name=data_subset, split=split, streaming=True
         )
@@ -240,13 +287,16 @@ def main(args: Namespace) -> None:
             continue
 
         # Get samples
+        rename_args_for_dataset(args, args.dataset)
         dataset = NoConcatDataset(
             dataset_name=args.dataset,
-            data_subset=args.data_subset,
             split=split.hf_split,
+            data_subset=args.data_subset,
         )
         loader = dataset.build_dataloader(batch_size=512)
-        samples = generate_samples_for_mds(loader, truncate_num_samples=split.truncated_samples)
+        samples = generate_samples_for_mds(
+            loader, truncate_num_samples=split.truncated_samples
+        )
         # Write samples
         print(f"Converting {split.folder_split} to MDS format...")
         denominator = (

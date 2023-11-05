@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import src.hf_bert as hf_bert_module
 import src.mosaic_bert as mosaic_bert_module
 import src.text_data as text_data_module
+
 from composer import Trainer, algorithms
 from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
                                 OptimizerMonitor, RuntimeEstimator,
@@ -21,35 +22,9 @@ from composer.optim.scheduler import (ConstantWithWarmupScheduler,
                                       CosineAnnealingWithWarmupScheduler,
                                       LinearWithWarmupScheduler)
 from composer.utils import dist, reproducibility
+
 from omegaconf import DictConfig
 from omegaconf import OmegaConf as om
-
-
-def update_batch_size_info(cfg: DictConfig):
-    global_batch_size, device_microbatch_size = cfg.global_train_batch_size, cfg.device_train_microbatch_size
-    if global_batch_size % dist.get_world_size() != 0:
-        raise ValueError(
-            f'Global batch size {global_batch_size} is not divisible by {dist.get_world_size()} '
-            'as a result, the batch size would be truncated, please adjust `global_batch_size` '
-            f'to be divisible by world size, {dist.get_world_size()}.')
-    device_train_batch_size = global_batch_size // dist.get_world_size()
-    if isinstance(device_microbatch_size, int):
-        if device_microbatch_size > device_train_batch_size:
-            print(
-                f'WARNING: device_train_microbatch_size > device_train_batch_size, '
-                f'will be reduced from {device_microbatch_size} -> {device_train_batch_size}.'
-            )
-            device_microbatch_size = device_train_batch_size
-    cfg.n_gpus = dist.get_world_size()
-    cfg.device_train_batch_size = device_train_batch_size
-    cfg.device_train_microbatch_size = device_microbatch_size
-    # Safely set `device_eval_batch_size` if not provided by user
-    if 'device_eval_batch_size' not in cfg:
-        if cfg.device_train_microbatch_size == 'auto':
-            cfg.device_eval_batch_size = 1
-        else:
-            cfg.device_eval_batch_size = cfg.device_train_microbatch_size
-    return cfg
 
 
 def log_config(cfg: DictConfig):
@@ -149,8 +124,8 @@ def build_model(cfg: DictConfig):
         return mosaic_bert_module.create_mosaic_bert_mlm(
             pretrained_model_name=cfg.pretrained_model_name,
             pretrained_checkpoint=cfg.get('pretrained_checkpoint', None),
-            model_config=cfg.get('model_config', None),
-            tokenizer_name=cfg.get('tokenizer_name', None),
+            model_config=cfg.model_config,
+            tokenizer_name=cfg.tokenizer_name,
             gradient_checkpointing=cfg.get('gradient_checkpointing', None))
     else:
         raise ValueError(f'Not sure how to build model with name={cfg.name}')
@@ -163,8 +138,6 @@ def main(cfg: DictConfig,
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
 
-    # Get batch size info
-    cfg = update_batch_size_info(cfg)
 
     # Build Model
     print('Initializing model...')
@@ -172,20 +145,30 @@ def main(cfg: DictConfig,
     n_params = sum(p.numel() for p in model.parameters())
     print(f'{n_params=:.4e}')
 
+    # Get batch size info
+    # cfg = update_batch_size_info(cfg)
+    _global_batch_size = cfg.global_train_batch_size
+    device_microbatch_size = cfg.device_train_microbatch_size
+    device_batch_size = _global_batch_size // dist.get_world_size()
+    if isinstance(device_microbatch_size, int):
+        if device_microbatch_size > device_batch_size:
+            print(
+                f'WARNING: device_train_microbatch_size > device_train_batch_size, '
+                f'will be reduced from {device_microbatch_size} -> {device_batch_size}.'
+            )
+            device_microbatch_size = device_batch_size    
+
     # Dataloaders
-    print('Building train loader...')
     train_loader = build_dataloader(
         cfg.train_loader,
         model.tokenizer,
-        cfg.global_train_batch_size // dist.get_world_size(),
+        device_batch_size,
     )
-    print('Building eval loader...')
-    global_eval_batch_size = cfg.get('global_eval_batch_size',
-                                     cfg.global_train_batch_size)
+    device_eval_batch_size = cfg.get('device_eval_batch_size', device_batch_size)
     eval_loader = build_dataloader(
         cfg.eval_loader,
         model.tokenizer,
-        global_eval_batch_size // dist.get_world_size(),
+       device_eval_batch_size,
     )
 
     # Optimizer
@@ -199,6 +182,9 @@ def main(cfg: DictConfig,
         build_logger(name, logger_cfg)
         for name, logger_cfg in cfg.get('loggers', {}).items()
     ]
+    progress_bar=cfg.progress_bar
+    log_to_console=cfg.log_to_console
+    console_log_interval=cfg.console_log_interval
 
     # Callbacks
     callbacks = [
@@ -216,36 +202,41 @@ def main(cfg: DictConfig,
         cfg.run_name = os.environ.get('COMPOSER_RUN_NAME', 'bert')
 
     # Build the Trainer
+    run_name=cfg.run_name
+
+    max_duration=cfg.max_duration
+    eval_interval=cfg.eval_interval
+    seed=cfg.seed
+    precision=cfg.precision
     trainer = Trainer(
-        run_name=cfg.run_name,
-        seed=cfg.seed,
+        run_name=run_name,
+        seed=seed,
         model=model,
         algorithms=algorithms,
         train_dataloader=train_loader,
         eval_dataloader=eval_loader,
-        train_subset_num_batches=cfg.get('train_subset_num_batches', -1),
-        eval_subset_num_batches=cfg.get('eval_subset_num_batches', -1),
+        # train_subset_num_batches=cfg.get('train_subset_num_batches', -1),
+        # eval_subset_num_batches=cfg.get('eval_subset_num_batches', -1),
         optimizers=optimizer,
         schedulers=scheduler,
-        max_duration=cfg.max_duration,
-        eval_interval=cfg.eval_interval,
-        progress_bar=cfg.progress_bar,
-        log_to_console=cfg.log_to_console,
-        console_log_interval=cfg.console_log_interval,
+        max_duration=max_duration,
+        eval_interval=eval_interval,
+        progress_bar=progress_bar,
+        log_to_console=log_to_console,
+        console_log_interval=console_log_interval,
         loggers=loggers,
         callbacks=callbacks,
-        precision=cfg.precision,
-        device=cfg.get('device', None),
-        device_train_microbatch_size=cfg.get('device_train_microbatch_size',
-                                             'auto'),
+        precision=precision,
+        # device=cfg.get('device', None),
+        device_train_microbatch_size=device_microbatch_size,
         save_folder=cfg.get('save_folder', None),
         save_interval=cfg.get('save_interval', '1000ba'),
         save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
                                              -1),
-        save_overwrite=cfg.get('save_overwrite', False),
+        # save_overwrite=cfg.get('save_overwrite', False),
         load_path=cfg.get('load_path', None),
-        load_weights_only=cfg.get('load_weights_only', False),
-        python_log_level=cfg.get('python_log_level', None),
+        # load_weights_only=cfg.get('load_weights_only', False),
+        # python_log_level=cfg.get('python_log_level', None),
     )
 
     print('Logging config...')
