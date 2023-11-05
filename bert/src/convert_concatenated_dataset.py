@@ -223,7 +223,7 @@ class JaConcatDataset(IterableDataset):
         # Multiple workers is only supported on linux machines
         num_workers = 0
         if "linux" in platform.platform().lower():
-            num_workers = min(64, self.hf_dataset.n_shards)  # type: ignore
+            num_workers = min(64, self.hf_datasets[0].n_shards)  # type: ignore
 
         if num_workers > 0:
             # If using multiple workers, configure each worker to prefetch as many samples as it can, up to the aggregate device batch size
