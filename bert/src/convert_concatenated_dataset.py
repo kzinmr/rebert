@@ -198,20 +198,19 @@ class JaConcatDataset(IterableDataset):
     def __init__(self, split: str):
         if split not in SPLIT2DATAMAP:
             raise ValueError(f"Split {split} not found in ['train', 'validation'].")
-        _datasets = []
+        self.hf_datasets = []
         for datainfo in SPLIT2DATAMAP[split]:
             dataset_name = datainfo["dataset"]
             data_subset = datainfo["data_subset"] if datainfo["data_subset"] else ""
-            _datasets.append(
-                hf_datasets.load_dataset(
-                    path=dataset_name, name=data_subset, split=split, streaming=True
-                )
+            _dataset = hf_datasets.load_dataset(
+                path=dataset_name, name=data_subset, split=split, streaming=True
             )
-        self.hf_datasets = _datasets
+            print(datainfo)
+            print(_dataset.info)
+            self.hf_datasets.append(_dataset)
 
     def __iter__(self) -> Iterable[Dict[str, bytes]]:
         for dataset in self.hf_datasets:
-            print(dataset.info)
             for sample in dataset:
                 # convert to bytes to store in MDS binary format
                 yield {"text": sample["text"].encode("utf-8")}
