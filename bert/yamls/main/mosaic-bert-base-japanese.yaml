@@ -3,15 +3,16 @@
 
 # Follow the instructions in the README to set up ./my-copy-c4
 # Or point data paths to your remote C4 dataset
-data_local: ./my-copy-c4
+data_local: ./ja-dataset
 data_remote: # If blank, files must be present in data_local
 
 max_seq_len: 128
-tokenizer_name: bert-base-uncased
+pretrained_model_name: mosaic-bert-base-japanese
+tokenizer_name: stabilityai/japanese-stablelm-3b-4e1t-base
 mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
 # Run Name
-run_name: mosaic-bert-base-uncased
+run_name: mosaic-bert-base-japanese
 
 # Model
 model:
@@ -71,7 +72,7 @@ optimizer:
 algorithms:
   fused_layernorm: {}
 
-max_duration: 286720000sp # Subsample the training data for ~275M samples
+max_duration: 127000000sp # Subsample the training data for ~128M samples
 eval_interval: 2000ba
 global_train_batch_size: 1024 # 4096
 
@@ -99,7 +100,7 @@ callbacks:
 #     entity:      # Fill this in
 
 # (Optional) Checkpoint to local filesystem or remote object store
-save_interval: 1000ba
+save_interval: 2000ba
 save_num_checkpoints_to_keep: 1 # Important, this cleans up checkpoints saved to DISK
 save_folder: "./ckpt" # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir/{run_name}/ckpt' (remote)
 
