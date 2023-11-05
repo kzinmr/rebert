@@ -29,6 +29,7 @@ def create_glue_dataset(
     max_seq_length: int = 256,
     max_retries: int = 10,
     num_workers: int = 0,
+    use_fast: bool = True
 ) -> datasets.Dataset:
 
     if task not in _task_column_names:
@@ -41,7 +42,7 @@ def create_glue_dataset(
         )
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
-        tokenizer_name)  #type: ignore (thirdparty)
+        tokenizer_name, use_fast=use_fast)  #type: ignore (thirdparty)
 
     log.info(f'Loading {task.upper()} on rank {dist.get_global_rank()}')
     download_config = datasets.DownloadConfig(max_retries=max_retries)

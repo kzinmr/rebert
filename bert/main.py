@@ -13,14 +13,21 @@ import src.mosaic_bert as mosaic_bert_module
 import src.text_data as text_data_module
 
 from composer import Trainer, algorithms
-from composer.callbacks import (HealthChecker, LRMonitor, MemoryMonitor,
-                                OptimizerMonitor, RuntimeEstimator,
-                                SpeedMonitor)
+from composer.callbacks import (
+    HealthChecker,
+    LRMonitor,
+    MemoryMonitor,
+    OptimizerMonitor,
+    RuntimeEstimator,
+    SpeedMonitor,
+)
 from composer.loggers import WandBLogger
 from composer.optim import DecoupledAdamW
-from composer.optim.scheduler import (ConstantWithWarmupScheduler,
-                                      CosineAnnealingWithWarmupScheduler,
-                                      LinearWithWarmupScheduler)
+from composer.optim.scheduler import (
+    ConstantWithWarmupScheduler,
+    CosineAnnealingWithWarmupScheduler,
+    LinearWithWarmupScheduler,
+)
 from composer.utils import dist, reproducibility
 
 from omegaconf import DictConfig
@@ -29,7 +36,7 @@ from omegaconf import OmegaConf as om
 
 def log_config(cfg: DictConfig):
     print(om.to_yaml(cfg))
-    if 'wandb' in cfg.get('loggers', {}):
+    if "wandb" in cfg.get("loggers", {}):
         try:
             import wandb
         except ImportError as e:
@@ -39,111 +46,117 @@ def log_config(cfg: DictConfig):
 
 
 def build_algorithm(name, kwargs):
-    if name == 'gradient_clipping':
+    if name == "gradient_clipping":
         return algorithms.GradientClipping(**kwargs)
-    elif name == 'alibi':
+    elif name == "alibi":
         return algorithms.Alibi(**kwargs)
-    elif name == 'fused_layernorm':
+    elif name == "fused_layernorm":
         return algorithms.FusedLayerNorm(**kwargs)
-    elif name == 'gated_linear_units':
+    elif name == "gated_linear_units":
         return algorithms.GatedLinearUnits(**kwargs)
-    elif name == 'low_precision_layernorm':
+    elif name == "low_precision_layernorm":
         return algorithms.LowPrecisionLayerNorm(**kwargs)
     else:
-        raise ValueError(f'Not sure how to build algorithm: {name}')
+        raise ValueError(f"Not sure how to build algorithm: {name}")
 
 
 def build_callback(name, kwargs):
-    if name == 'lr_monitor':
+    if name == "lr_monitor":
         return LRMonitor()
-    elif name == 'memory_monitor':
+    elif name == "memory_monitor":
         return MemoryMonitor()
-    elif name == 'speed_monitor':
-        return SpeedMonitor(window_size=kwargs.get('window_size', 1),
-                            gpu_flops_available=kwargs.get(
-                                'gpu_flops_available', None))
-    elif name == 'runtime_estimator':
+    elif name == "speed_monitor":
+        return SpeedMonitor(
+            window_size=kwargs.get("window_size", 1),
+            gpu_flops_available=kwargs.get("gpu_flops_available", None),
+        )
+    elif name == "runtime_estimator":
         return RuntimeEstimator()
-    elif name == 'optimizer_monitor':
-        return OptimizerMonitor(log_optimizer_metrics=kwargs.get(
-            'log_optimizer_metrics', True),)
-    elif name == 'health_checker':
+    elif name == "optimizer_monitor":
+        return OptimizerMonitor(
+            log_optimizer_metrics=kwargs.get("log_optimizer_metrics", True),
+        )
+    elif name == "health_checker":
         return HealthChecker(**kwargs)
     else:
-        raise ValueError(f'Not sure how to build callback: {name}')
+        raise ValueError(f"Not sure how to build callback: {name}")
 
 
 def build_logger(name, kwargs):
-    if name == 'wandb':
+    if name == "wandb":
         return WandBLogger(**kwargs)
     else:
-        raise ValueError(f'Not sure how to build logger: {name}')
+        raise ValueError(f"Not sure how to build logger: {name}")
 
 
 def build_scheduler(cfg):
-    if cfg.name == 'constant_with_warmup':
+    if cfg.name == "constant_with_warmup":
         return ConstantWithWarmupScheduler(t_warmup=cfg.t_warmup)
-    elif cfg.name == 'cosine_with_warmup':
-        return CosineAnnealingWithWarmupScheduler(t_warmup=cfg.t_warmup,
-                                                  alpha_f=cfg.alpha_f)
-    elif cfg.name == 'linear_decay_with_warmup':
-        return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup,
-                                         alpha_f=cfg.alpha_f)
+    elif cfg.name == "cosine_with_warmup":
+        return CosineAnnealingWithWarmupScheduler(
+            t_warmup=cfg.t_warmup, alpha_f=cfg.alpha_f
+        )
+    elif cfg.name == "linear_decay_with_warmup":
+        return LinearWithWarmupScheduler(t_warmup=cfg.t_warmup, alpha_f=cfg.alpha_f)
     else:
-        raise ValueError(f'Not sure how to build scheduler: {cfg.name}')
+        raise ValueError(f"Not sure how to build scheduler: {cfg.name}")
 
 
 def build_optimizer(cfg, model):
-    if cfg.name == 'decoupled_adamw':
-        return DecoupledAdamW(model.parameters(),
-                              lr=cfg.lr,
-                              betas=cfg.betas,
-                              eps=cfg.eps,
-                              weight_decay=cfg.weight_decay)
+    if cfg.name == "decoupled_adamw":
+        return DecoupledAdamW(
+            model.parameters(),
+            lr=cfg.lr,
+            betas=cfg.betas,
+            eps=cfg.eps,
+            weight_decay=cfg.weight_decay,
+        )
     else:
-        raise ValueError(f'Not sure how to build optimizer: {cfg.name}')
+        raise ValueError(f"Not sure how to build optimizer: {cfg.name}")
 
 
 def build_dataloader(cfg, tokenizer, device_batch_size):
-    if cfg.name == 'text':
-        return text_data_module.build_text_dataloader(cfg, tokenizer,
-                                                      device_batch_size)
+    if cfg.name == "text":
+        return text_data_module.build_text_dataloader(cfg, tokenizer, device_batch_size)
     else:
-        raise ValueError(f'Not sure how to build dataloader with config: {cfg}')
+        raise ValueError(f"Not sure how to build dataloader with config: {cfg}")
 
 
 def build_model(cfg: DictConfig):
-    if cfg.name == 'hf_bert':
+    if cfg.name == "hf_bert":
         return hf_bert_module.create_hf_bert_mlm(
             pretrained_model_name=cfg.pretrained_model_name,
-            use_pretrained=cfg.get('use_pretrained', None),
-            model_config=cfg.get('model_config', None),
-            tokenizer_name=cfg.get('tokenizer_name', None),
-            gradient_checkpointing=cfg.get('gradient_checkpointing', None))
-    elif cfg.name == 'mosaic_bert':
+            use_pretrained=cfg.get("use_pretrained", None),
+            model_config=cfg.get("model_config", None),
+            tokenizer_name=cfg.get("tokenizer_name", None),
+            gradient_checkpointing=cfg.get("gradient_checkpointing", None),
+            use_fast=cfg.get("use_fast", True),
+        )
+    elif cfg.name == "mosaic_bert":
         return mosaic_bert_module.create_mosaic_bert_mlm(
             pretrained_model_name=cfg.pretrained_model_name,
-            pretrained_checkpoint=cfg.get('pretrained_checkpoint', None),
+            pretrained_checkpoint=cfg.get("pretrained_checkpoint", None),
             model_config=cfg.model_config,
             tokenizer_name=cfg.tokenizer_name,
-            gradient_checkpointing=cfg.get('gradient_checkpointing', None))
+            gradient_checkpointing=cfg.get("gradient_checkpointing", None),
+            use_fast=cfg.get("use_fast", True),
+        )
     else:
-        raise ValueError(f'Not sure how to build model with name={cfg.name}')
+        raise ValueError(f"Not sure how to build model with name={cfg.name}")
 
 
-def main(cfg: DictConfig,
-         return_trainer: bool = False,
-         do_train: bool = True) -> Optional[Trainer]:
-    print('Training using config: ')
+def main(
+    cfg: DictConfig, return_trainer: bool = False, do_train: bool = True
+) -> Optional[Trainer]:
+    print("Training using config: ")
     print(om.to_yaml(cfg))
     reproducibility.seed_all(cfg.seed)
 
-
     # Build Model
-    print('Initializing model...')
+    print("Initializing model...")
     model = build_model(cfg.model)
     n_params = sum(p.numel() for p in model.parameters())
-    print(f'{n_params=:.4e}')
+    print(f"{n_params=:.4e}")
 
     # Get batch size info
     # cfg = update_batch_size_info(cfg)
@@ -153,10 +166,10 @@ def main(cfg: DictConfig,
     if isinstance(device_microbatch_size, int):
         if device_microbatch_size > device_batch_size:
             print(
-                f'WARNING: device_train_microbatch_size > device_train_batch_size, '
-                f'will be reduced from {device_microbatch_size} -> {device_batch_size}.'
+                f"WARNING: device_train_microbatch_size > device_train_batch_size, "
+                f"will be reduced from {device_microbatch_size} -> {device_batch_size}."
             )
-            device_microbatch_size = device_batch_size    
+            device_microbatch_size = device_batch_size
 
     # Dataloaders
     train_loader = build_dataloader(
@@ -164,11 +177,11 @@ def main(cfg: DictConfig,
         model.tokenizer,
         device_batch_size,
     )
-    device_eval_batch_size = cfg.get('device_eval_batch_size', device_batch_size)
+    device_eval_batch_size = cfg.get("device_eval_batch_size", device_batch_size)
     eval_loader = build_dataloader(
         cfg.eval_loader,
         model.tokenizer,
-       device_eval_batch_size,
+        device_eval_batch_size,
     )
 
     # Optimizer
@@ -180,34 +193,34 @@ def main(cfg: DictConfig,
     # Loggers
     loggers = [
         build_logger(name, logger_cfg)
-        for name, logger_cfg in cfg.get('loggers', {}).items()
+        for name, logger_cfg in cfg.get("loggers", {}).items()
     ]
-    progress_bar=cfg.progress_bar
-    log_to_console=cfg.log_to_console
-    console_log_interval=cfg.console_log_interval
+    progress_bar = cfg.progress_bar
+    log_to_console = cfg.log_to_console
+    console_log_interval = cfg.console_log_interval
 
     # Callbacks
     callbacks = [
         build_callback(name, callback_cfg)
-        for name, callback_cfg in cfg.get('callbacks', {}).items()
+        for name, callback_cfg in cfg.get("callbacks", {}).items()
     ]
 
     # Algorithms
     algorithms = [
         build_algorithm(name, algorithm_cfg)
-        for name, algorithm_cfg in cfg.get('algorithms', {}).items()
+        for name, algorithm_cfg in cfg.get("algorithms", {}).items()
     ]
 
-    if cfg.get('run_name') is None:
-        cfg.run_name = os.environ.get('COMPOSER_RUN_NAME', 'bert')
+    if cfg.get("run_name") is None:
+        cfg.run_name = os.environ.get("COMPOSER_RUN_NAME", "bert")
 
     # Build the Trainer
-    run_name=cfg.run_name
+    run_name = cfg.run_name
 
-    max_duration=cfg.max_duration
-    eval_interval=cfg.eval_interval
-    seed=cfg.seed
-    precision=cfg.precision
+    max_duration = cfg.max_duration
+    eval_interval = cfg.eval_interval
+    seed = cfg.seed
+    precision = cfg.precision
     trainer = Trainer(
         run_name=run_name,
         seed=seed,
@@ -229,28 +242,27 @@ def main(cfg: DictConfig,
         precision=precision,
         # device=cfg.get('device', None),
         device_train_microbatch_size=device_microbatch_size,
-        save_folder=cfg.get('save_folder', None),
-        save_interval=cfg.get('save_interval', '1000ba'),
-        save_num_checkpoints_to_keep=cfg.get('save_num_checkpoints_to_keep',
-                                             -1),
+        save_folder=cfg.get("save_folder", None),
+        save_interval=cfg.get("save_interval", "1000ba"),
+        save_num_checkpoints_to_keep=cfg.get("save_num_checkpoints_to_keep", -1),
         # save_overwrite=cfg.get('save_overwrite', False),
-        load_path=cfg.get('load_path', None),
+        load_path=cfg.get("load_path", None),
         # load_weights_only=cfg.get('load_weights_only', False),
         # python_log_level=cfg.get('python_log_level', None),
     )
 
-    print('Logging config...')
+    print("Logging config...")
     log_config(cfg)
 
     if do_train:
-        print('Starting training...')
+        print("Starting training...")
         trainer.fit()
 
     if return_trainer:
         return trainer
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     yaml_path, args_list = sys.argv[1], sys.argv[2:]
     with open(yaml_path) as f:
         yaml_cfg = om.load(f)

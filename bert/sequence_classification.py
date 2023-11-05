@@ -175,6 +175,7 @@ def build_my_dataloader(cfg: DictConfig, device_batch_size: int):
         split=cfg.split,
         tokenizer_name=cfg.tokenizer_name,
         max_seq_length=cfg.max_seq_len,
+        use_fast=cfg.get('use_fast', True),
     )
 
     dataset = cast(Dataset, dataset)
@@ -238,14 +239,14 @@ def main(cfg: DictConfig,
     # Dataloaders
     print('Building train loader...')
     train_loader = build_my_dataloader(
-        cfg.train_loader,
+        cfg,
         cfg.global_train_batch_size // dist.get_world_size(),
     )
     print('Building eval loader...')
     global_eval_batch_size = cfg.get('global_eval_batch_size',
                                      cfg.global_train_batch_size)
     eval_loader = build_my_dataloader(
-        cfg.eval_loader,
+        cfg,
         global_eval_batch_size // dist.get_world_size(),
     )
 

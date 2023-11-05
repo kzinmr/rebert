@@ -8,7 +8,7 @@ data_remote: # If blank, files must be present in data_local
 
 max_seq_len: 128
 pretrained_model_name: mosaic-bert-base-japanese
-tokenizer_name: stabilityai/japanese-stablelm-base-ja_vocab-beta-7b
+tokenizer_name: rinna/bilingual-gpt-neox-4b
 mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
 # Run Name
@@ -19,6 +19,7 @@ model:
   name: mosaic_bert
   pretrained_model_name: ${tokenizer_name}
   tokenizer_name: ${tokenizer_name}
+  use_fast: false  # for japanese tokenizer
   # Mosaic BERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
   # Note: if using the pretrained_checkpoint argument to create a model from an existing checkpoint, make sure
   # the model_config settings match the architecture of the existing model

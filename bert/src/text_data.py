@@ -247,6 +247,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_seq_len", type=int, default=32, help="max sequence length to test"
     )
+    parser.add_argument(
+        "--use_fast", action="store_true", help="use fast tokenizer if available"
+    )
 
     args = parser.parse_args()
 
@@ -274,7 +277,7 @@ if __name__ == "__main__":
     device_batch_size = 2
 
     tokenizer_cfg = {"name": args.tokenizer, "kwargs": {}}
-    tokenizer_cfg["kwargs"] = {"model_max_length": args.max_seq_len}
+    tokenizer_cfg["kwargs"] = {"model_max_length": args.max_seq_len, "use_fast": args.use_fast}
     tokenizer_cfg = om.create(tokenizer_cfg)
     tokenizer = build_tokenizer(tokenizer_cfg)
 
