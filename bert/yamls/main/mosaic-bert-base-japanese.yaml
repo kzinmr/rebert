@@ -8,7 +8,7 @@ data_remote: # If blank, files must be present in data_local
 
 max_seq_len: 128
 pretrained_model_name: mosaic-bert-base-japanese
-tokenizer_name: stabilityai/japanese-stablelm-3b-4e1t-base
+tokenizer_name: stabilityai/japanese-stablelm-base-ja_vocab-beta-7b
 mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
 # Run Name
