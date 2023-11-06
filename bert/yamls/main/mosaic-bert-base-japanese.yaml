@@ -17,7 +17,7 @@ run_name: mosaic-bert-base-japanese
 # Model
 model:
   name: mosaic_bert
-  pretrained_model_name: ${tokenizer_name}
+  pretrained_model_name: ${pretrained_model_name}
   tokenizer_name: ${tokenizer_name}
   use_fast: false  # for japanese tokenizer
   # Mosaic BERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
