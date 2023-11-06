@@ -7,7 +7,7 @@ data_local: ./ja-dataset
 data_remote: # If blank, files must be present in data_local
 
 max_seq_len: 128
-pretrained_model_name: mosaic-bert-base-japanese
+pretrained_model_name: bert-base-uncased
 tokenizer_name: rinna/bilingual-gpt-neox-4b
 mlm_probability: 0.3 # Mosaic BERT should use 30% masking for optimal performance
 
