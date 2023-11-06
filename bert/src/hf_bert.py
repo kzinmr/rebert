@@ -116,7 +116,11 @@ def create_hf_bert_mlm(
         MaskedAccuracy(ignore_index=-100),
     ]
     return HuggingFaceModel(
-        model=model, tokenizer=tokenizer, use_logits=True, metrics=metrics
+        model=model,
+        tokenizer=tokenizer,
+        use_logits=True,
+        metrics=metrics,
+        allow_embedding_resizing=True,
     )
 
 
@@ -224,7 +228,9 @@ def create_hf_bert_classification(
 
     # setup the tokenizer
     if tokenizer_name:
-        tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer_name, use_fast=use_fast)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            tokenizer_name, use_fast=use_fast
+        )
     else:
         tokenizer = None
 
@@ -241,5 +247,9 @@ def create_hf_bert_classification(
             metrics.append(BinaryF1Score())
 
     return HuggingFaceModel(
-        model=model, tokenizer=tokenizer, use_logits=True, metrics=metrics
+        model=model,
+        tokenizer=tokenizer,
+        use_logits=True,
+        metrics=metrics,
+        allow_embedding_resizing=True,
     )

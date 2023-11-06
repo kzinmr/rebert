@@ -131,7 +131,11 @@ def create_mosaic_bert_mlm(
     ]
 
     hf_model = HuggingFaceModel(
-        model=model, tokenizer=tokenizer, use_logits=True, metrics=metrics
+        model=model,
+        tokenizer=tokenizer,
+        use_logits=True,
+        metrics=metrics,
+        allow_embedding_resizing=True,
     )
 
     # Padding for divisibility by 8
@@ -295,7 +299,11 @@ def create_mosaic_bert_classification(
             metrics.append(BinaryF1Score())
 
     hf_model = HuggingFaceModel(
-        model=model, tokenizer=tokenizer, use_logits=True, metrics=metrics
+        model=model,
+        tokenizer=tokenizer,
+        use_logits=True,
+        metrics=metrics,
+        allow_embedding_resizing=True,
     )
 
     # Padding for divisibility by 8
