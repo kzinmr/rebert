@@ -21,7 +21,7 @@ from composer.callbacks import (
     RuntimeEstimator,
     SpeedMonitor,
 )
-from composer.loggers import WandBLogger
+from composer.loggers import FileLogger, WandBLogger
 from composer.optim import DecoupledAdamW
 from composer.optim.scheduler import (
     ConstantWithWarmupScheduler,
@@ -85,6 +85,8 @@ def build_callback(name, kwargs):
 def build_logger(name, kwargs):
     if name == "wandb":
         return WandBLogger(**kwargs)
+    elif name == "file":
+        return FileLogger(**kwargs)
     else:
         raise ValueError(f"Not sure how to build logger: {name}")
 
