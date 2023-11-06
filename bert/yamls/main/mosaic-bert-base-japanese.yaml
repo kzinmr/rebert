@@ -73,7 +73,7 @@ optimizer:
 algorithms:
   fused_layernorm: {}
 
-max_duration: 127000000sp # Subsample the training data for ~128M samples
+max_duration: 128000000sp # Subsample the training data for ~128M samples
 eval_interval: 2000ba
 global_train_batch_size: 1024 # 4096
 

@@ -161,7 +161,7 @@ def build_train_ja_constants():
         + build_wiki40B_ja_constants().splits["train"].raw_samples
         + build_wikipedia_ja_constants().splits["train"].raw_samples
         # +build_cc100_ja_constants().splits["train"].raw_samples
-    )  # 127,579,715
+    )  # 127,579,715  # 128,933,565 in MDSWriter
     val_raw_samples = (
         build_mc4_ja_constants().splits["val"].raw_samples
         + build_wiki40B_ja_constants().splits["val"].raw_samples
