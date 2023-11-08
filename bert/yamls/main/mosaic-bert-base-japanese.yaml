@@ -23,6 +23,7 @@ model:
   # Mosaic BERT 'base' generally uses the default architecture values for from the Hugging Face BertConfig object
   # Note: if using the pretrained_checkpoint argument to create a model from an existing checkpoint, make sure
   # the model_config settings match the architecture of the existing model
+  pretrained_checkpoint: saved_ckpt/ep0-ba125000-rank0.pt
   model_config:
     num_attention_heads: 12 # bert-base default
     num_hidden_layers: 12 # bert-base default
@@ -111,4 +112,4 @@ save_folder: "./ckpt" # e.g. './{run_name}/ckpt' (local) or 's3://mybucket/mydir
 # start from an existing model checkpoint;
 # e.g. './ckpt/latest-rank{rank}.pt' (local), or
 # 's3://mybucket/mydir/ckpt/latest-rank{rank}.pt' (remote)
-# load_path: null
+load_path: saved_ckpt/ep0-ba125000-rank0.pt
