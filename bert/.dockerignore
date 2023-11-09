@@ -1,0 +1,7 @@
+ja-dataset/*
+en-dataset/*
+my-copy-c4/*
+ckpt/*
+saved_ckpt/*
+logging/*
+wandb/*
