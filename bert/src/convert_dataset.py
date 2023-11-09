@@ -14,11 +14,6 @@ from torch.utils.data import DataLoader, IterableDataset
 from tqdm import tqdm
 
 
-class ConcatMode(Enum):
-    NO_CONCAT = "NO_CONCAT"
-    CONCAT_TOKENS = "CONCAT_TOKENS"
-
-
 def parse_args() -> Namespace:
     """Parse commandline arguments."""
     parser = ArgumentParser(
@@ -122,68 +117,21 @@ def build_c4_constants():
         val_chars_per_token=4,
     )
 
-
-def build_mc4_ja_constants():
+def build_sp_constants():
     return build_constants(
-        train_raw_samples=87337884,
-        val_raw_samples=87420,
-        val_chars_per_sample=-1,
-        val_chars_per_token=-1,
-    )
-
-
-def build_oscar_ja_constants():
-    return build_constants(
-        train_raw_samples=39496439,
+        train_raw_samples=-1,
         val_raw_samples=-1,
         val_chars_per_sample=-1,
         val_chars_per_token=-1,
     )
-
-
-def build_cc100_ja_constants():
-    return build_constants(
-        train_raw_samples=458387942,
-        val_raw_samples=-1,
-        val_chars_per_sample=-1,
-        val_chars_per_token=-1,
-    )
-
-
-def build_wiki40B_ja_constants():
-    return build_constants(
-        train_raw_samples=745392,
-        val_raw_samples=41576,
-        val_chars_per_sample=-1,
-        val_chars_per_token=-1,
-    )
-
-
-def build_wikipedia_ja_constants():
-    return build_constants(
-        train_raw_samples=1353850,
-        val_raw_samples=-1,
-        val_chars_per_sample=-1,
-        val_chars_per_token=-1,
-    )
-
 
 CONSTS = {
     "c4": build_c4_constants(),
-    "mc4": build_mc4_ja_constants(),
-    "oscar": build_oscar_ja_constants(),
-    "cc100": build_cc100_ja_constants(),
-    "wiki40B": build_wiki40B_ja_constants(),
-    "wikipedia": build_wikipedia_ja_constants(),
 }
 
 DATAMAP = {
     "c4": {"dataset": "c4", "data_subset": "en"},
-    "mc4": {"dataset": "mc4", "data_subset": "ja"},
-    "oscar": {"dataset": "oscar", "data_subset": "unshuffled_deduplicated_ja"},
-    "cc100": {"dataset": "range3/cc100-ja", "data_subset": None},
-    "wiki40B": {"dataset": "range3/wiki40b-ja", "data_subset": None},
-    "wikipedia": {"dataset": "range3/wikipedia-ja-20230101", "data_subset": None},
+    "slimpajama": {"dataset": "cerebras/SlimPajama-627B", "data_subset": None},
 }
 
 
@@ -268,7 +216,7 @@ def main(args: Namespace) -> None:
         dataset_constants = CONSTS[args.dataset]
     except KeyError:
         raise ValueError(
-            f'Constants for dataset "{args.dataset}" not found. Currently only "the_pile" and "c4" are supported.'
+            f'Constants for dataset "{args.dataset}" not found. Currently only "slimpajama" and "c4" are supported.'
         )
 
     columns = {"text": "str"}
@@ -304,8 +252,12 @@ def main(args: Namespace) -> None:
         with MDSWriter(
             columns=columns, out=outpath, compression=args.compression
         ) as out:
-            for sample in tqdm(samples, desc=split.folder_split, total=denominator):
-                out.write(sample)
+            if denominator > 0:
+                for sample in tqdm(samples, desc=split.folder_split, total=denominator):
+                    out.write(sample)
+            else:
+                for sample in tqdm(samples, desc=split.folder_split):
+                    out.write(sample)
 
 
 if __name__ == "__main__":
