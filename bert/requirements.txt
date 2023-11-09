@@ -8,3 +8,4 @@ transformers==4.28.1
 triton==2.0.0.dev20221103
 sentencepiece
 protobuf==3.20.2
+zstandard
