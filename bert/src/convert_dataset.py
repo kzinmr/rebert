@@ -3,6 +3,7 @@
 
 import os
 import platform
+import time
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from enum import Enum
@@ -218,6 +219,7 @@ def generate_samples_for_mds(
                 return
             n_samples += 1
             yield {k: v[batch_idx] for k, v in batch.items()}
+        time.sleep(0.1)
 
 
 def main(args: Namespace) -> None:
