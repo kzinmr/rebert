@@ -167,7 +167,7 @@ class NoConcatDataset(IterableDataset):
             if self.dataset_name == "cerebras/SlimPajama-627B":
                 if (
                     sample["meta"]["redpajama_set_name"]
-                    in self.redpajama_valid_set_names
+                    not in self.redpajama_valid_set_names
                 ):
                     continue
             yield {"text": sample["text"].encode("utf-8")}
