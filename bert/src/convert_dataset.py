@@ -117,6 +117,7 @@ def build_c4_constants():
         val_chars_per_token=4,
     )
 
+
 def build_sp_constants():
     return build_constants(
         train_raw_samples=-1,
@@ -125,8 +126,10 @@ def build_sp_constants():
         val_chars_per_token=-1,
     )
 
+
 CONSTS = {
     "c4": build_c4_constants(),
+    "slimpajama": build_sp_constants(),
 }
 
 DATAMAP = {
@@ -152,13 +155,20 @@ class NoConcatDataset(IterableDataset):
         self.hf_dataset = hf_datasets.load_dataset(
             path=dataset_name, name=data_subset, split=split, streaming=True
         )
-        self.redpajama_valid_set_names = {"RedPajamaCommonCrawl" , "RedPajamaC4", "RedPajamaWikipedia"}
+        self.redpajama_valid_set_names = {
+            "RedPajamaCommonCrawl",
+            "RedPajamaC4",
+            "RedPajamaWikipedia",
+        }
 
     def __iter__(self) -> Iterable[Dict[str, bytes]]:
         for sample in self.hf_dataset:
             # convert to bytes to store in MDS binary format
             if self.dataset_name == "cerebras/SlimPajama-627B":
-                if sample["meta"]["redpajama_set_name"] in self.redpajama_valid_set_names:
+                if (
+                    sample["meta"]["redpajama_set_name"]
+                    in self.redpajama_valid_set_names
+                ):
                     continue
             yield {"text": sample["text"].encode("utf-8")}
 
